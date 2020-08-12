@@ -55,6 +55,10 @@ typedef struct {
 	int max_matesw;         // perform maximally max_matesw rounds of mate-SW for each end
 	int max_XA_hits, max_XA_hits_alt; // if there are max_hits or fewer, output them all
 	int8_t mat[25];         // scoring matrix; mat[0] == 0 if unset
+  int max_reported_aln;   // max number of reported alignment
+  int report_full_secondary_info; // set to 1 to print full information for secondary alignments
+  int lift_secondary_quality; // set to 1 to copy primary's MAPQ to secondary alignments; otherwise MAPQs for secondaries are always 0
+
 } mem_opt_t;
 
 typedef struct {

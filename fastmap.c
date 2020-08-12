@@ -130,7 +130,7 @@ int main_mem(int argc, char *argv[])
 
 	aux.opt = opt = mem_opt_init();
 	memset(&opt0, 0, sizeof(mem_opt_t));
-	while ((c = getopt(argc, argv, "51qpaMCSPVYjuk:c:v:s:r:t:R:A:B:O:E:U:w:L:d:T:Q:D:m:I:N:o:f:W:x:G:h:y:K:X:H:")) >= 0) {
+	while ((c = getopt(argc, argv, "51qpaMCSPVYjuFgk:c:v:s:r:t:R:A:B:O:E:U:w:L:d:T:Q:D:m:I:N:o:f:W:x:G:h:y:K:X:H:e:")) >= 0) {
 		if (c == 'k') opt->min_seed_len = atoi(optarg), opt0.min_seed_len = 1;
 		else if (c == '1') no_mt_io = 1;
 		else if (c == 'x') mode = optarg;
@@ -166,6 +166,9 @@ int main_mem(int argc, char *argv[])
 		else if (c == 'C') aux.copy_comment = 1;
 		else if (c == 'K') fixed_chunk_size = atoi(optarg);
 		else if (c == 'X') opt->mask_level = atof(optarg);
+    else if (c == 'e') opt->max_reported_aln = atoi(optarg);
+    else if (c == 'F') opt->report_full_secondary_info = 1;
+    else if (c == 'g') opt->lift_secondary_quality = 1;
 		else if (c == 'h') {
 			opt0.max_XA_hits = opt0.max_XA_hits_alt = 1;
 			opt->max_XA_hits = opt->max_XA_hits_alt = strtol(optarg, &p, 10);
@@ -287,6 +290,11 @@ int main_mem(int argc, char *argv[])
 		fprintf(stderr, "                     (4 sigma from the mean if absent) and min of the insert size distribution.\n");
 		fprintf(stderr, "                     FR orientation only. [inferred]\n");
 		fprintf(stderr, "\n");
+    fprintf(stderr, "\nExperimental options:\n\n");
+    fprintf(stderr, "       -F            Set to 1 to print full information for secondary alignments [0].\n");
+    fprintf(stderr, "       -g            Set to 1 to copy primary's MAPQ to secondary alignments;\n");
+    fprintf(stderr, "                     otherwise MAPQs for secondaries are always 0 [0].\n");
+    fprintf(stderr, "       -e INT        Max number of reported alignment. By default there's no limit [-1].\n");
 		fprintf(stderr, "Note: Please read the man page for detailed description of the command line and options.\n");
 		fprintf(stderr, "\n");
 		free(opt);

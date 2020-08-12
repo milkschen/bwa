@@ -79,6 +79,10 @@ mem_opt_t *mem_opt_init()
 	o->min_chain_weight = 0;
 	o->max_chain_extend = 1<<30;
 	o->mapQ_coef_len = 50; o->mapQ_coef_fac = log(o->mapQ_coef_len);
+
+  o->max_reported_aln = -1;
+  o->report_full_secondary_info = 0;
+  o->lift_secondary_quality = 0;
 	bwa_fill_scmat(o->a, o->b, o->mat);
 	return o;
 }
@@ -868,7 +872,8 @@ void mem_aln2sam(const mem_opt_t *opt, const bntseq_t *bns, kstring_t *str, bseq
 	kputc('\t', str);
 
 	// print SEQ and QUAL
-	if (p->flag & 0x100) { // for secondary alignments, don't write SEQ and QUAL
+  // for secondary alignments, don't write SEQ and QUAL if --report_full_secondary_info is not set
+	if (!opt->report_full_secondary_info && p->flag & 0x100) {
 		kputsn("*\t*", 3, str);
 	} else if (!p->is_rev) { // the forward strand
 		int i, qb = 0, qe = s->l_seq;
@@ -1039,7 +1044,15 @@ void mem_reg2sam(const mem_opt_t *opt, const bntseq_t *bns, const uint8_t *pac, 
 		t.flag |= extra_flag;
 		mem_aln2sam(opt, bns, &str, s, 1, &t, 0, m);
 	} else {
-		for (k = 0; k < aa.n; ++k)
+    int num_reported_aln;
+    if (opt->max_reported_aln == -1) // print everything
+      num_reported_aln = aa.n;
+    else if (aa.n > opt->max_reported_aln)
+      num_reported_aln = opt->max_reported_aln;
+    else
+      num_reported_aln = aa.n;
+		for (k = 0; k < num_reported_aln; ++k)
+    // for (k = 0; k < aa.n; ++k)
 			mem_aln2sam(opt, bns, &str, s, aa.n, aa.a, k, m);
 		for (k = 0; k < aa.n; ++k) free(aa.a[k].cigar);
 		free(aa.a);
@@ -1106,7 +1119,16 @@ mem_aln_t mem_reg2aln(const mem_opt_t *opt, const bntseq_t *bns, const uint8_t *
 	query = malloc(l_query);
 	for (i = 0; i < l_query; ++i) // convert to the nt4 encoding
 		query[i] = query_[i] < 5? query_[i] : nst_nt4_table[(int)query_[i]];
-	a.mapq = ar->secondary < 0? mem_approx_mapq_se(opt, ar) : 0;
+
+  // Lift secondary MAPQs as the value for primary.
+  if (opt->lift_secondary_quality)
+    a.mapq = mem_approx_mapq_se(opt, ar);
+  // Set secondary MAPQs to 0.
+  else if (ar->secondary < 0)
+  	a.mapq = mem_approx_mapq_se(opt, ar);
+  else
+    a.mapq = 0;
+
 	if (ar->secondary >= 0) a.flag |= 0x100; // secondary alignment
 	tmp = infer_bw(qe - qb, re - rb, ar->truesc, opt->a, opt->o_del, opt->e_del);
 	w2  = infer_bw(qe - qb, re - rb, ar->truesc, opt->a, opt->o_ins, opt->e_ins);
